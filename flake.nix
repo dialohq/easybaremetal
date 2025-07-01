@@ -2,21 +2,36 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/81bbc0eb0b178d014b95fc769f514bedb26a6127";
     flake-utils.url = "github:numtide/flake-utils/11707dc2f618dd54ca8739b309ec4fc024de578b";
+    kubenix.url = "github:hall/kubenix";
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    kubenix,
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
     in {
+      # Manifests
+      packages = {
+        kubenix = kubenix.packages.${pkgs.system}.default.override {
+          module = {kubenix, ...}: {
+            imports = [kubenix.modules.k8s];
+            kubernetes.resources = import ./webapp.nix;
+          };
+          specialArgs = {flake = self;};
+        };
+      };
+
+      # Dev shell
       devShells.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           alejandra
           bun
         ];
+        env.KUBECONFIG = "./k3s.yaml";
       };
     });
 }
