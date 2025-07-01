@@ -33,3 +33,22 @@ And your new setup is the exact same. Let's see this in action.
 
                               ** do the thing **
                 ** wait for applause and give autographs ** 
+
+1. Why third-part is bad?
+  - from blog.md
+2. What are out choces on bare-metal
+  - `scp`/`ssh` manual stuff
+  - docker/docker compose 
+  - Kubernetes
+
+3. still gotta host Kuberenets somehow - NixOS
+4. about Nix briefly
+  - core concepts
+  - cowsay devShell
+  - introduce flake (same shell with cowsay)
+  - build simple app
+5. NixOS - k3s on VM, move configuration to other machine
+6. YAMLs bad, want version-control, used and know Nix already - Kubenix
+7. modify somehting in the cluster, udpate cluster, show real-time results
+8. Why nix for cluster state anyway? conenct to build system if you want
+
