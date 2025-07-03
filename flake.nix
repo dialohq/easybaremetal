@@ -46,7 +46,7 @@
         };
 
         docker-blog = n2c.nix2container.buildImage {
-          name = "ghcr.io/adamchol/easybaremetal";
+          name = "ghcr.io/dialohq/easybaremetal";
           copyToRoot = self.packages.${system}.blog;
           config = {
             entrypoint = ["${pkgs.bun}/bin/bun" "serve.ts"];

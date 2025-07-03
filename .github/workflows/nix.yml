@@ -34,7 +34,7 @@ jobs:
 
       - name: Build the blog docker file and push to registry
         run: |
-          nix run .#docker-blog.copyToRegistry
+          nix run .#docker-blog.copyToRegistry --no-sandbox
 
       - name: Build and apply k8s changes
         run: nix run .#kubenix apply
