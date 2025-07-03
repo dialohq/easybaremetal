@@ -3,6 +3,7 @@ import blogContent from './assets/blog.md?raw'
 import poster from './assets/bare-metal-poster.png'
 import { FaServer } from "react-icons/fa6";
 import type { ReactNode, ElementType } from 'react';
+import rehypeRaw from 'rehype-raw';
 
 const NewTabA: ElementType = ({ href, children }: { href: string | undefined, children: ReactNode }) => {
   return (
@@ -91,8 +92,8 @@ function App() {
               </div>
             </div>
 
-            <div className="prose prose-lg prose-gray prose-a:text-blue-500 prose-blockquote:bg-red-100 prose-blockquote:border-l-red-400 prose-blockquote:rounded-r-md max-w-none prose-h1:text-4xl prose-h1:sm:text-5xl prose-h1:font-bold prose-h1:leading-tight prose-code:bg-red-50 prose-code:text-red-800 prose-code:px-2 prose-code:py-1 prose-code:rounded-md prose-code:font-mono prose-code:text-sm prose-code:font-semibold prose-code:before:content-none prose-code:after:content-none">
-              <Markdown components={{ a: NewTabA }}>{blogContent}</Markdown>
+            <div className="prose">
+              <Markdown rehypePlugins={[rehypeRaw]} components={{ a: NewTabA }}>{blogContent}</Markdown>
             </div>
           </div>
         </article>

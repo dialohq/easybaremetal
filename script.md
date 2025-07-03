@@ -38,7 +38,15 @@ And your new setup is the exact same. Let's see this in action.
   - from blog.md
 2. What are out choces on bare-metal
   - `scp`/`ssh` manual stuff
-  - docker/docker compose 
+    - the first thing you might thing you need to do
+    - error-prone
+    - time-consuming 
+    - no automation
+    - difficult to scale
+    - manually install each dependency you need, one by one 
+    - difficult to upgrade the version
+    - inconsistent environment, your app might not actually run, especially if you need some runtime
+    - Actually not sure what's the "hard way"
   - Kubernetes
 
 3. still gotta host Kuberenets somehow - NixOS
