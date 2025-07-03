@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'flake.nix'
+      - 'web/**'
+      - 'infra/**'
 jobs:
   nix-build:
     permissions:
@@ -37,5 +41,5 @@ jobs:
           nix run .#docker-blog.copyToRegistry --no-sandbox
 
       - name: Build and apply k8s changes
-        run: nix run .#kubenix apply
+        run: yes | nix run .#kubenix --no-sandbox
 
