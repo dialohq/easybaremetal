@@ -1,4 +1,5 @@
 {
+  packages,
   kubenix,
   lib,
   ...
@@ -9,7 +10,7 @@ in {
     kubenix.modules.k8s
     (makers.mkBasicDeployment {
       name = "webapp";
-      image = "plan9better/webapp:latest";
+      image = "${packages.docker-blog.imageName}:${packages.docker-blog.imageTag}";
       replicas = 2;
       targetPort = 3000;
       ingress-hosts = ["easybaremetal.com" "www.easybaremetal.com"];
