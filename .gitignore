@@ -1,2 +1,5 @@
 .direnv/
 k3s.yaml
+result
+tutorials/result
+tutorials/flake-app/node_modules

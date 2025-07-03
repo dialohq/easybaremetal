@@ -83,10 +83,10 @@ The most common place you'll see Flakes is in development environments. It's one
       in {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
-            pnpm_9
+            nodejs_24
           ];
           shellHook = ''
-            pnpm --version
+            node --version
           '';
           env = {
             EDITOR = "nvim";
@@ -114,7 +114,7 @@ warning: creating lock file '"/Users/patrykwojnarowski/dev/easybaremetal/tutoria
 
 You can ignore the Git warnings, it just says that the current version of the Flake is not committed.
 
-The other lines indicate that Nix fetched the latest versions of the specified inputs (e.g., `nixpkgs`, `flake-utils`) from GitHub. At the end, just above the prompt, you should see the version of `pnpm` Nix installed and exposed to you.
+The other lines indicate that Nix fetched the latest versions of the specified inputs (e.g., `nixpkgs`, `flake-utils`) from GitHub. At the end, just above the prompt, you should see the version of `node` Nix installed and exposed to you.
 
 ## Line by Line (More or Less)
 
@@ -155,10 +155,10 @@ flake-utils.lib.eachDefaultSystem (
   in {
     devShells.default = pkgs.mkShell {
       packages = with pkgs; [
-        pnpm_9
+        nodejs_24
       ];
       shellHook = ''
-        pnpm --version
+        node --version
       '';
       env = {
         EDITOR = "hx";
@@ -195,10 +195,10 @@ Next, we define our actual development shell:
 ```nix
 devShells.default = pkgs.mkShell {
   packages = with pkgs; [
-    pnpm_9
+    nodejs_24
   ];
   shellHook = ''
-    pnpm --version
+    node --version
   '';
   env = {
     EDITOR = "hx";
@@ -208,13 +208,13 @@ devShells.default = pkgs.mkShell {
 
 Here's what each part does:
 
-* `packages` is a list of packages available in the shell. We use `with pkgs;` so we don't have to write `pkgs.pnpm_9`.
+* `packages` is a list of packages available in the shell. We use `with pkgs;` so we don't have to write `pkgs.nodejs_24`.
 
   Equivalent version:
 
   ```nix
   packages = [
-    pkgs.pnpm_9
+    pkgs.nodejs_24
   ];
   ```
 
@@ -227,8 +227,73 @@ Here's what each part does:
   ```nix
   shellHook = ''
     source .env
-    pnpm --version
+    node --version
   '';
   ```
 
 And that's it!
+
+One more thing flakes are useful for is building projects, lets build a nodejs app to test it out.
+
+Since we already have `node`, `npm` and `npx` (npm and npx come bundled with node) in the dev shell, we can leave it as is. (Remember, if you're not sure what's the name of the package remember you can use `search.nixos.org`)
+
+```nix
+packages = with pkgs; [
+  nodejs_24
+];
+  
+```
+
+So we can run the typical `npx create-react-app flakeApp` (and completely ignore the deprecation warning ;)).
+When we enter into the folder it created you can run `npm run start` as normal to verify everything is good.
+
+But how do we build it?
+
+There is another attribute in the `outputs` set besides `devshells` we care about. It's `packages`. Here you specify packages you want to be able to build and run and how to do it.
+
+We'll use a function called `buildNpmPackage`. It's a fancy wrapper around a lower level `mkDerivation`. There are a lot of them for different languages and tools, e.g. `buildGoModule` for golang, and all of them take 1 argument which is an attribute set with options like `name`, `src`, `buildInputs` (dependencies), and different phases of the build process (there are a bunch) but the ones you'll care about are `buildPhase` (building the application, running the compiler) and `installPhase` (cleaning up, outputing only what we want).
+```nix
+flake-utils.lib.eachDefaultSystem (
+  system: let
+  ...
+  in {
+    packages = {
+      sampleApp = pkgs.buildNpmPackage {};
+    };
+    devShells.default = pkgs.mkShell {
+      ...
+    };
+  }
+);
+
+```
+Here `buildNpmPackage` handles `buildPhase` for us once we specify the npm script to run, but we still have to specify the `installPhase`.
+```nix
+packages = {
+  sampleApp = pkgs.buildNpmPackage {
+    name = "sample";
+    buildInputs = [pkgs.nodejs_24];
+    src = ./flake-app;
+    npmDepsHash = "";
+    npmBuild = "npm run build";
+    installPhase = ''
+      mkdir $out
+      cp -r public $out
+      cp -r build $out
+    '';
+  };
+};
+```
+* `name` is arbitrary and up to us
+* for `buildInputs` we only need npm 
+* `src` is the path to your project
+* `npmBuild` is the command to run to build our app
+* `installPhase` specifies what to do after out buildPhase, it has access to a env variable called `out` that specifies the path to which we have to move everything we want to output from the build process, in our case we care about the `public` and `build` directories.
+* `npmDepsHash` is the hash of all the dependencies, it works the same way as package-lock.json but for all of the dependencies combined instead of for each one. We can leave it empty for now, since we don't know the hash yet and checking it manually wouldn't be the most convenient thing in the world.
+To find out how to use functions a good way is to search on github `language:nix buildNpmPackage` and you can see tons (6.1k) of examples how different people use it for different projects.
+
+To build with nix from a flake, we use the `nix build` command, it takes a path to the flake as an argument, followed by the name of the package we want to build seperated with a `#`. So the final command in our case looks like `nix build .#sampleApp`. (btw `nix develop` takes the same argument as well, but if it's not given it will look for an attribute named `default` and do that instead. Same thing applies here, if we named the package `default`, we could've just run `nix build` with no arguments for the same effect)
+
+Upon running `nix build .#sampleApp`, once it finished you should see a `result` folder, which contains the final compiled files ready to serve.
+
+To test it out we can run `nix run nixpkgs#python3 -- -m http.server 8000 -d ./result/build` and navigate to localhost:8000 to see the classic react spinner.
