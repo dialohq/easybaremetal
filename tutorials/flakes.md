@@ -290,10 +290,13 @@ packages = {
 * `npmBuild` is the command to run to build our app
 * `installPhase` specifies what to do after out buildPhase, it has access to a env variable called `out` that specifies the path to which we have to move everything we want to output from the build process, in our case we care about the `public` and `build` directories.
 * `npmDepsHash` is the hash of all the dependencies, it works the same way as package-lock.json but for all of the dependencies combined instead of for each one. We can leave it empty for now, since we don't know the hash yet and checking it manually wouldn't be the most convenient thing in the world.
+
 To find out how to use functions a good way is to search on github `language:nix buildNpmPackage` and you can see tons (6.1k) of examples how different people use it for different projects.
 
 To build with nix from a flake, we use the `nix build` command, it takes a path to the flake as an argument, followed by the name of the package we want to build seperated with a `#`. So the final command in our case looks like `nix build .#sampleApp`. (btw `nix develop` takes the same argument as well, but if it's not given it will look for an attribute named `default` and do that instead. Same thing applies here, if we named the package `default`, we could've just run `nix build` with no arguments for the same effect)
 
-Upon running `nix build .#sampleApp`, once it finished you should see a `result` folder, which contains the final compiled files ready to serve.
+The first time you run this it should error saying there was a hash mismatch. That's because we left the `npmDepsHash` empty. But it also prints the hash it got so we can just copy and paste it into the `npmDepsHash` attribute.
+
+Upon running `nix build .#sampleApp` again, once it finished you should see a `result` folder, which contains the final compiled files ready to serve.
 
 To test it out we can run `nix run nixpkgs#python3 -- -m http.server 8000 -d ./result/build` and navigate to localhost:8000 to see the classic react spinner.
