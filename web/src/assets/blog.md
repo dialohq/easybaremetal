@@ -38,7 +38,7 @@ If you're good, you're event going to write the `docker-compose.yml` and run Doc
 
 ### The Gold Standard
 
-So this brings me to the final hosting solution, which is the very popular, gold standard - **Kubernetes**. You might think, "Oh no, another thing to learn!" and yes, there's a learning curve. But think about all the problems we just talked about. Kubernetes solves them, so you don't event have to think about them at all, most of the time. You no longer think about individual machines or containers. You think about the "desired state" of your application. You just tell Kubernetes, "Hey, I want three copies of my app running at all times, connected to this database." And Kubernetes makes it so. (turns out there is also a tool called `kubectl-ai` so you can literally "say" this to Kubernetes lol).
+So this brings me to the final hosting solution, which is the very popular, gold standard - **Kubernetes**. You might think, "Oh no, another thing to learn!" and yes, there's a learning curve. But think about all the problems we just talked about. Kubernetes solves them, so you don't event have to think about them at all, most of the time. You no longer think about individual machines or containers. You think about the "desired state" of your application. You just tell Kubernetes, "Hey, I want three copies of my app running at all times, connected to this database." And Kubernetes makes it so. (turns out there is also a tool [kubectl-ai](https://github.com/GoogleCloudPlatform/kubectl-ai) so you can literally "say" this to Kubernetes lol).
 
 What happens if a container crashes? You don't care! Kubernetes sees it's gone and spins up a new one automatically. That's self-healing right there. What about that scaling problem? You get a sudden spike in traffic? Kubernetes can be configured to automatically scale up the number of your app containers to handle the load and then scale them back down when things quiet down. It's like magic! Rolling out a new version of your app is a breeze with zero downtime, and if you mess up, rolling back is just as simple. It handles the complex networking between services and even makes managing persistent storage for your stateful applications like databases a solvable problem. It's the ultimate orchestrator that takes all the manual, error-prone work and automates it. For serious hosting on bare metal, **this is the way**.
 
@@ -375,7 +375,59 @@ But what if you want to roll back to a known-good state of the application from 
 
 If we have already defined the state of our server in configuration.nix to deploy Kubernetes, why don't we define the state of the whole Kubernetes cluster in Nix as well? All of the resources, defined in a purely functional, deterministic, programmatic way.
 
-`kubenix`
+That's what [kubenix](https://github.com/hall/kubenix) is for. It allows you to define the whole Kubernetes cluster in Nix and provides a simple CLI for deploying the changes. You can find all of the important information about it on GitHub, but it basically works like this:
+
+First, you add `kubenix` as an input in your `flake.nix`:
+
+```nix
+{
+  inputs.kubenix.url = "github:hall/kubenix";
+  outputs = {self, kubenix, ... }@inputs: let
+    system = "x86_64-linux";
+  in {
+    # Rest of your flake
+  };
+}
+```
+
+then, to use the CLI, override the default package, passing the arguments of evalModules.
+
+```nix
+{
+  kubenix = inputs.kubenix.packages.${pkgs.system}.default.override {
+    module = import ./cluster.nix;
+    # optional; pass custom values to the kubenix module
+    specialArgs = { flake = self; };
+  };
+}
+```
+
+
+The `./cluster.nix` is almost like a `NixOS` module. You define k8s resources there and it can import other modules as well. For example, here is a simple pod:
+
+```nix
+# ./cluster.nix
+
+{kubenix, ...}:
+{
+  imports = [kubenix.modules.k8s];
+  pods.some-app = {
+    spec.containers.webapp2.image = "image-name:image-tag";
+  };
+}
+```
+
+Notice we didn't have to write all of the specifications from the normal YAML file the defines the Pod resouce in Kubernetes. We just wrote the image, and `kubenix` generates the rest.
+
+Now, because we have a programming language, in our hands, we can make our lifes easier by making functions for creating specific deployments. As a  good example, you can see how this blog you are reading right now is defined and deployed. We make a [simple Nix function](https://github.com/dialohq/easybaremetal/blob/main/infra/helpers.nix) `mkBasicDeployment` that bundles 3 resources: Deployment, Service and Ingress. Then we can [use this function](https://github.com/dialohq/easybaremetal/blob/main/infra/apps.nix) to deploy public web apps by just passing a few arguments.
+
+To apply changes in Nix to your actuall cluster, you just run:
+
+```bash
+nix run .#kubenix
+```
+
+`kubenix` will then evaluate Nix, generate YAML and sync it with the current state of your cluster. It will first show you a diff of changes and ask for a confirmation to apply new resources and prune removed ones, if any.
 
 ## Connecting to the build system
 
