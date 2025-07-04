@@ -373,6 +373,7 @@ Now that we understand a bit about Nix, let's get Kubernetes running on our "bar
 
 <details>
 <summary>NixOS basics</summary>
+
 ## Install on hetzner
 
 To install NixOS on hetzner, first get any cloud server. I recommend the arm64 instances since they are typically cheaper and arm64 support on NixOS is great.
