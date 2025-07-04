@@ -381,7 +381,7 @@ Then:
 1. Go to the `ISO images` tab  and mount the NixOS arm64/minimal image.
 2. Reboot the machine
 3. Open the web console `>_`
-4. Follow (these)[https://nixos.org/manual/nixos/stable/index.html#sec-installation-manual] steps.
+4. Follow [these](https://nixos.org/manual/nixos/stable/index.html#sec-installation-manual) steps.
 5. When you get to the `Partitioning and formatting` section, if you wen't with arm64 follow the `UEFI` isntructions and if you chose amd64, `MBR`
 
 ## Post-install setup
@@ -435,7 +435,7 @@ $ nixos-rebuild switch
 
 * Now that we are ready to use flakes, time to migrate the existing config. Remember this flake is the same as the one we used in the `devShell` tutorial, nix just cares about different attributes found in the `outputs` attribute set, namely the `nixosConfigurations` attribute set.
 
->  The following example is taken from the (NixOS & flakes book)[https://nixos-and-flakes.thiscute.world/nixos-with-flakes/nixos-with-flakes-enabled] which is a great resource for learning nix and nixos.
+>  The following example is taken from the [NixOS & flakes book](https://nixos-and-flakes.thiscute.world/nixos-with-flakes/nixos-with-flakes-enabled) which is a great resource for learning nix and nixos.
 
 ```nix
 {
