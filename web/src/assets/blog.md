@@ -428,7 +428,3 @@ nix run .#kubenix
 ```
 
 `kubenix` will then evaluate Nix, generate YAML and sync it with the current state of your cluster. It will first show you a diff of changes and ask for a confirmation to apply new resources and prune removed ones, if any.
-
-## Connecting to the build system
-
-TODO
