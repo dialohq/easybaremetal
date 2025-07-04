@@ -420,7 +420,7 @@ Without comments and blank lines your minimal config should look similiar to thi
 > I recommend to run `$ sudo -i` if you're not already root, you won't have to type `sudo` before every command.
 
 ```bash
-$ touch /etc/nixos/configuration.nix
+$ touch /etc/nixos/flake.nix
 ```
 
 * Next step is to enable flakes in your current configuration since they are still considered `experimental` even though they are the preferred and almost exclusively used by the community way to use nix. Add the following lines to your current `configuration.nix`:
@@ -493,7 +493,7 @@ nixosConfigurations.my-nixos = nixpkgs.lib.nixosSystem {
 
 > Sidenote
 > Whenever we import a file in `modules`, it get's called as a function. To see this check out the first line of `configuration.nix`
-> `{config, lib, pkgs, ...}: {...}` as you can see it takes a few arguments and returns an attribute set, if we wanted to we could take those same arguments in `k3s.nix` but we don't need them for anything so we just ignore anything passed to this function and always return the same attribute set, our current `k3s.nix` is similiar in spirit to this examle JS function:
+> `{config, lib, pkgs, ...}: {...}` as you can see it takes a few arguments and returns an attribute set, if we wanted to we could take those same arguments in `k3s.nix` but we don't need them for anything so we just ignore anything passed to this function and always return the same attribute set, our current `k3s.nix` is similiar in spirit to this example JS function:
 > ```js
 > function k3s(...args) {
 >   return { a: 1, b: 2, c: 3 };
