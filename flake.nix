@@ -59,8 +59,6 @@
             entrypoint = ["bun" "serve.ts"];
           };
         };
-
-        nc = n2c;
       };
 
       devShells.default = pkgs.mkShell {
