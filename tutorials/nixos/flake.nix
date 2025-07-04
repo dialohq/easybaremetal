@@ -12,6 +12,7 @@
       modules = [
         ./configuration.nix
         ./k3s.nix
+        ./vm.nix
       ];
     };
   };

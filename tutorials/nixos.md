@@ -137,3 +137,36 @@ kube-system       Active   10d
 > Of course the age will probably be closer to `1m` than `10d`.
 
 Now you're ready to start deploying applications.
+
+### Appendix: NixOS VMs
+
+NixOS let's you build vm's from the config alone, to showcase this we'll add a `vm.nix` file in the `/etc/nixos` directory next to your other config files with the following:
+```nix
+{
+  virtualisation.vmVariant = {
+    virtualisation.graphics = false;
+    users.users.spike = {
+      isNormalUser = true;
+      home = "/home/spike";
+      description = "Spike Spiegel";
+      extraGroups = ["wheel" "networkmanager"];
+      password = "password";
+    };
+  };
+}
+```
+Everything you put in the `virtualisation.vmVariant` attribute set is config specific to the VM. We disable graphics to run as a server but graphical VM's are an option too. We have to define our user again because of how nixos handles users, don't forget to set a password here so you can log in to the VM, other options for setting a password are `initialPassword` and `hashedPassword`.
+
+Don't forget to include it in the `modules` list in `flake.nix`. 
+
+```nix
+modules = [
+  ./configuration.nix
+  ./k3s.nix
+  ./vm.nix
+];
+```
+
+Now when you run `$ nixos-rebuild build-vm` you should be able to run `./result/bin/run-nixos-vm` and see nixos boot.
+
+Other `nixos-rebuild` VM option is `build-vm-with-bootloader` which does exactly what it sounds like.

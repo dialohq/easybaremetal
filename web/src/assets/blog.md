@@ -52,7 +52,7 @@ This brings us to probably the most important topic of this post, which is Nix i
 
 So what is this Nix thing I just dropped on you? It sounds complicated, but let's break it down. First off, Nix isn't just one thing, which is where people can get confused. You can think of it as **three things in one** that are based on each other: it's a programming language, a package manager, and a full-blown operating system (NixOS). The magic is how they all work together. At its heart, Nix language, which is responsible for build Nix packages, is **declarative and purely functional**. This means you don't write a list of steps to set something up; instead, you write a single configuration file that describes the exact final state you want.
 
-Nix is also a very **deterministic** which means that a package definition in Nix language will always build the exact same software, bit for bit, every single time. It doesn't matter what other libraries or junk you have installed on your system, you don't have to install anything besides Nix itself. It builds everything in its own isolated sandbox, eliminating the "but it works on my machine!" problem forever. This deterministic power is what makes its package repository, **nixpkgs**, a reality. It's a gigantic collection where each package is just a functional declaration of what it is and what it depends on. When you ask for a package, Nix builds it and all of its dependencies from the ground up in that same perfectly reproducible way.
+Nix is also very **deterministic** which means that a package definition in Nix language will always build the exact same software, bit for bit, every single time. It doesn't matter what other libraries or junk you have installed on your system, you don't have to install anything besides Nix itself. It builds everything in its own isolated sandbox, eliminating the "but it works on my machine!" problem forever. This deterministic power is what makes its package repository, **nixpkgs**, a reality. It's a gigantic collection where each package is just a functional declaration of what it is and what it depends on. When you ask for a package, Nix builds it and all of its dependencies from the ground up in that same perfectly reproducible way.
 
 And here’s a fact that might surprise you if you're new to this: **nixpkgs** is the single biggest package repository in the world in terms of the number of available packages. Yes, you heard that right. Homebrew, `apt`, or any other manager you can think of is a tiny little thing next to the sheer volume of software available in nixpkgs. It suprised me when I started with Nix and I'm sure it will suprise many more. Seems like it's one of the best-kept secrets in tech, but it's an absolute giant. And we're going to use this power to declare our entire server configuration, including Kubernetes itself, in reproducible Nix files.
 
@@ -69,6 +69,11 @@ If you haven’t already enabled Flakes, add the following line to your `/etc/ni
 
 ```conf
 experimental-features = nix-command flakes
+```
+
+Or if you're on nixos, add this to your `configuration.nix`:
+```nix
+nix.settings.experimental-features = [ "nix-command" "flakes" ];
 ```
 
 ## What Are They
@@ -364,9 +369,184 @@ To test it out we can run `nix run nixpkgs#python3 -- -m http.server 8000 -d ./r
 </details>
 
 ## Deploying Kubernetes to NixOS
+Now that we understand a bit about Nix, let's get Kubernetes running on our "bare-metal" server.
 
-TODO
+<details>
+<summary>NixOS basics</summary>
+## Install on hetzner
 
+To install NixOS on hetzner, first get any cloud server. I recommend the arm64 instances since they are typically cheaper and arm64 support on NixOS is great.
+Then:
+1. Go to the `ISO images` tab  and mount the NixOS arm64/minimal image.
+2. Reboot the machine
+3. Open the web console `>_`
+4. Follow (these)[https://nixos.org/manual/nixos/stable/index.html#sec-installation-manual] steps.
+5. When you get to the `Partitioning and formatting` section, if you wen't with arm64 follow the `UEFI` isntructions and if you chose amd64, `MBR`
+
+## Post-install setup
+
+First thing we'll do is change the configuration.nix to the modern flake, to get all of the benefits discussed above but for our entire system.
+
+Without comments and blank lines your minimal config should look similiar to this:
+```nix
+{ config, lib, pkgs, ... }:
+{
+  imports = [
+    ./hardware-configuration.nix
+  ];
+  users.users.spike = {
+    isNormalUser = true;
+    home = "/home/spike";
+    description = "Spike Spiegel";
+    extraGroups = ["wheel" "networkmanager"];
+    openssh.authorizedKeys.keys = [ "..." ];
+  };
+  environment.systemPackages = with pkgs; [
+    neovim
+  ];
+  services.openssh.enable = true;
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  system.stateVersion = "25.05";
+}
+```
+> Make sure you don't modify `hardware-configuration.nix` and include it in your final configuration, it's some hardware specific chages automatically picked up by nixos, specific to that machine.
+
+* First thing you have to do is create a `flake.nix` file in the same directory as `configuration.nix` (/etc/nixos/).
+
+> I recommend to run `$ sudo -i` if you're not already root, you won't have to type `sudo` before every command.
+
+```bash
+$ touch /etc/nixos/configuration.nix
+```
+
+* Next step is to enable flakes in your current configuration since they are still considered `experimental` even though they are the preferred and almost exclusively used by the community way to use nix. Add the following lines to your current `configuration.nix`:
+
+```nix
+...
+nix.settings.experimental-features = [ "nix-command" "flakes" ];
+...
+```
+and switch to the new configuration:
+```bash
+$ nixos-rebuild switch
+```
+
+* Now that we are ready to use flakes, time to migrate the existing config. Remember this flake is the same as the one we used in the `devShell` tutorial, nix just cares about different attributes found in the `outputs` attribute set, namely the `nixosConfigurations` attribute set.
+
+>  The following example is taken from the (NixOS & flakes book)[https://nixos-and-flakes.thiscute.world/nixos-with-flakes/nixos-with-flakes-enabled] which is a great resource for learning nix and nixos.
+
+```nix
+{
+  description = "A simple NixOS flake";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+  };
+
+  outputs = { self, nixpkgs, ... }@inputs: {
+    # Please replace my-nixos with your hostname
+    nixosConfigurations.my-nixos = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        # Import the previous configuration.nix we used,
+        # so the old configuration file still takes effect
+        ./configuration.nix
+      ];
+    };
+  };
+}
+```
+> When copying make sure to replace the `my-nixos` attribute of `nixosConfigurations` with your machines hostname. If you're not sure what it is you can run `$ hostname` to find out. As well as the system, if you're not sure about this one as well check out the output of `$ uname -a`, look for `aarch64` or `x86_64`
+
+Now when you run `$ nixos-rebuild switch` nothing should change, because we just switched to a different way of defining the same options.
+
+> If you would like, you can change the name of your configuration to something other than your hostname, and pass it to the rebuild command explicitly `nixos-rebuild switch --flake /etc/nixos#notYourHostname`. It's the same as with `nix build` and `nix develop`, nix will evaluate the flake, and because it was run with the rebuild switch command it will look for `nixosConfigurations`, and if no more arguments are passed it will look for the configuration named after the hostname, but you can be explicit and change it to whatever you feel like.
+
+Even though the configuration is only imported from the `configuration.nix`, we are still getting the benefits of using flakes.
+
+## Enabling k3s
+K3s is a simplified kubernetes distribution that sets up a few things out of the box and is pretty light weight.
+
+To keep our config organized lets create a new file in the same directory as `flake.nix` (still /etc/nixos/) called `k3s.nix` that will contain our configuration.
+
+```nix
+{
+  services.k3s.enable = true;
+}
+```
+> Yes it's that simple
+
+Now we just need to point to it in our configuration modules
+```nix
+nixosConfigurations.my-nixos = nixpkgs.lib.nixosSystem {
+  system = "aarch64-linux";
+  modules = [
+    ./configuration.nix
+    ./k3s.nix
+  ];
+};
+```
+
+> Sidenote
+> Whenever we import a file in `modules`, it get's called as a function. To see this check out the first line of `configuration.nix`
+> `{config, lib, pkgs, ...}: {...}` as you can see it takes a few arguments and returns an attribute set, if we wanted to we could take those same arguments in `k3s.nix` but we don't need them for anything so we just ignore anything passed to this function and always return the same attribute set, our current `k3s.nix` is similiar in spirit to this examle JS function:
+> ```js
+> function k3s(...args) {
+>   return { a: 1, b: 2, c: 3 };
+> }
+> ```
+
+Now after running `nixos-rebuild switch` we'll have k3s installed and ready to go. 
+To test it out you could install `kubectl` (kubernetes management tool) with `$ nix shell nixpkgs#kubectl`, and set an environment variable `KUBECONFIG` to point to `/etc/rancher/k3s/k3s.yaml` with a simple `export KUBECONFIG=/etc/rancher/k3s/k3s.yaml`, which is just a yaml file that lets `kubectl` access the cluster. And run `kubectl get namespaces` to see what's going on.
+
+You should see something similiar to this:
+```
+NAME              STATUS   AGE
+default           Active   10d
+kube-node-lease   Active   10d
+kube-public       Active   10d
+kube-system       Active   10d  
+```
+
+> Of course the age will probably be closer to `1m` than `10d`.
+
+Now you're ready to start deploying applications.
+
+### Appendix: NixOS VMs
+
+NixOS let's you build vm's from the config alone, to showcase this we'll add a `vm.nix` file in the `/etc/nixos` directory next to your other config files with the following:
+```nix
+{
+  virtualisation.vmVariant = {
+    virtualisation.graphics = false;
+    users.users.spike = {
+      isNormalUser = true;
+      home = "/home/spike";
+      description = "Spike Spiegel";
+      extraGroups = ["wheel" "networkmanager"];
+      password = "password";
+    };
+  };
+}
+```
+Everything you put in the `virtualisation.vmVariant` attribute set is config specific to the VM. We disable graphics to run as a server but graphical VM's are an option too. We have to define our user again because of how nixos handles users, don't forget to set a password here so you can log in to the VM, other options for setting a password are `initialPassword` and `hashedPassword`.
+
+Don't forget to include it in the `modules` list in `flake.nix`. 
+
+```nix
+modules = [
+  ./configuration.nix
+  ./k3s.nix
+  ./vm.nix
+];
+```
+
+Now when you run `$ nixos-rebuild build-vm` you should be able to run `./result/bin/run-nixos-vm` and see nixos boot.
+
+Other `nixos-rebuild` VM option is `build-vm-with-bootloader` which does exactly what it sounds like.
+
+</details>
 ## Nix For Cluster State
 
 We have our Kubernetes cluster deployed on NixOS, so now let's go back to why we went this hard on Nix. It's great how K8s does most of the things for us automatically, like scaling and upgrading with no downtime. But after some time, you might notice that managing the cluster itself can be pretty hard. Kubernetes resources are defined in YAML files that live inside the cluster, and the only way you can access them is through your cluster's API (using tools like `kubectl`). So every time you need to change the tag of your software image to upgrade to a new version, you have to execute something like `kubectl edit` and change it.
