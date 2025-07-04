@@ -547,6 +547,7 @@ Now when you run `$ nixos-rebuild build-vm` you should be able to run `./result/
 Other `nixos-rebuild` VM option is `build-vm-with-bootloader` which does exactly what it sounds like.
 
 </details>
+
 ## Nix For Cluster State
 
 We have our Kubernetes cluster deployed on NixOS, so now let's go back to why we went this hard on Nix. It's great how K8s does most of the things for us automatically, like scaling and upgrading with no downtime. But after some time, you might notice that managing the cluster itself can be pretty hard. Kubernetes resources are defined in YAML files that live inside the cluster, and the only way you can access them is through your cluster's API (using tools like `kubectl`). So every time you need to change the tag of your software image to upgrade to a new version, you have to execute something like `kubectl edit` and change it.
