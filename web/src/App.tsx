@@ -150,7 +150,7 @@ function App() {
               </div>
             </div>
 
-            <div className="prose">
+            <div className="prose prose-h1:text-3xl prose-h1:lg:text-4xl">
               <Markdown rehypePlugins={[rehypeRaw]} components={{ a: NewTabA }}>{blogContent}</Markdown>
             </div>
           </div>
