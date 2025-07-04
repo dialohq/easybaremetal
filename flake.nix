@@ -47,9 +47,16 @@
 
         docker-blog = n2c.nix2container.buildImage {
           name = "ghcr.io/dialohq/easybaremetal";
-          copyToRoot = self.packages.${system}.blog;
+          copyToRoot = [
+            (pkgs.buildEnv {
+              name = "root";
+              paths = [pkgs.bun];
+              pathsToLink = ["/bin"];
+            })
+            self.packages.${system}.blog
+          ];
           config = {
-            entrypoint = ["${pkgs.bun}/bin/bun" "serve.ts"];
+            entrypoint = ["bun" "serve.ts"];
           };
         };
 
