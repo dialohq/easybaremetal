@@ -27,7 +27,7 @@ function App() {
         <article className="bg-white shadow-2xl shadow-red-500/35 max-w-4xl w-full mx-auto overflow-hidden">
           <div className="px-8 py-6 sm:p-12 lg:px-16 lg:py-10">
 
-            <div className="mb-10 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            {/*<div className="mb-10 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div className="flex items-start gap-2">
                 <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -43,7 +43,7 @@ function App() {
                   </p>
                 </div>
               </div>
-            </div>
+            </div>*/}
 
             <div className="flex items-center gap-3 mb-6 md:justify-start justify-center">
               <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-400 rounded-lg flex items-center justify-center" >

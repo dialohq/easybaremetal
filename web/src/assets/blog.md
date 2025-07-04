@@ -8,7 +8,7 @@ This post is for those who are curious about what lies beyond the one-click depl
 
 I am going to argue that hosting on "bare-metal" doesn't have to be the scary, manual ordeal you might imagine. In fact, with the right setup, you can create a deployment system that is far more powerful and, in the long run, just as streamlined - and that's the kind of setup I want to present you here right now.
 
-> Actually, it's not exactly always **bare-metal**. It'll mostly likely be VPS, but I will continue to write "bare-metal" in this article, because it sounds cooler.
+> Actually, it's not exactly always **bare-metal**. It'll mostly likely be VPS.
 
 ## The Trouble with "Serverless" Simplicity
 
@@ -38,23 +38,25 @@ If you're good, you're event going to write the `docker-compose.yml` and run Doc
 
 ### The Gold Standard
 
-So this brings me to the final hosting solution, which is the very popular, gold standard - **Kubernetes**. You might think, "Oh no, another thing to learn!" and yes, there's a learning curve. But think about all the problems we just talked about. Kubernetes solves them, so you don't event have to think about them at all, most of the time. You no longer think about individual machines or containers. You think about the "desired state" of your application. You just tell Kubernetes, "Hey, I want three copies of my app running at all times, connected to this database." And Kubernetes makes it so. (turns out there is also a tool [kubectl-ai](https://github.com/GoogleCloudPlatform/kubectl-ai) so you can literally "say" this to Kubernetes lol).
+So this brings me to the final hosting solution, which is the very popular, gold standard - [**Kubernetes**](https://kubernetes.io/). You might think, "Oh no, another thing to learn!" and yes, there's a learning curve. But think about all the problems we just talked about. Kubernetes solves them, so you don't event have to think about them at all, most of the time. You no longer think about individual machines or containers. You think about the "desired state" of your application. You just tell Kubernetes, "Hey, I want three copies of my app running at all times, connected to this database." And Kubernetes makes it so. (turns out there is also a tool [kubectl-ai](https://github.com/GoogleCloudPlatform/kubectl-ai) so you can literally "say" this to Kubernetes lol).
 
 What happens if a container crashes? You don't care! Kubernetes sees it's gone and spins up a new one automatically. That's self-healing right there. What about that scaling problem? You get a sudden spike in traffic? Kubernetes can be configured to automatically scale up the number of your app containers to handle the load and then scale them back down when things quiet down. It's like magic! Rolling out a new version of your app is a breeze with zero downtime, and if you mess up, rolling back is just as simple. It handles the complex networking between services and even makes managing persistent storage for your stateful applications like databases a solvable problem. It's the ultimate orchestrator that takes all the manual, error-prone work and automates it. For serious hosting on bare metal, **this is the way**.
 
 ## Soo, deploying?
 
-Alright, now that we see Kubernetes is the best way, how do we actually deploy it to the server? I mean, it won't magically appear on our rented Hetzner VPS. So wait, does this mean we're back to killing all the progress we made by manually SSHing into the machine to install and configure Kubernetes? Well, yes and no. It's true that for the first time, we have to SSH in there. But we won't actually manually install a binary like k3s and run it with the correct flags and configuration. Hell no. We're doing this the right way, the easy way. And the secret for that is a very specific Linux distribution we will use on our server: **NixOS**.
+Alright, now that we see Kubernetes is the best way, how do we actually deploy it to the server? I mean, it won't magically appear on our rented Hetzner VPS. So wait, does this mean we're back to killing all the progress we made by manually SSHing into the machine to install and configure Kubernetes? Well, yes and no. It's true that for the first time, we have to SSH in there. But we won't actually manually install a binary like k3s and run it with the correct flags and configuration. Hell no. We're doing this the right way, the easy way. And the secret for that is a very specific Linux distribution we will use on our server: [**NixOS**](https://nixos.org/).
 
 This brings us to probably the most important topic of this post, which is Nix itself. This, alongside Kubernetes, is the fundamental technology for our final setup. We won't just use NixOS for the deployment; we will also describe and modify our deployed apps on the Kubernetes cluster in the **Nix language** - more on that later. Because this is such an important topic, I want to briefly talk about it. The next section is mainly for people who have never used or even heard about Nix, but even if you have, I would still recommend you scan it quickly to know where we're at.
 
 ## What On Earth Is Nix?
 
-So what is this Nix thing I just dropped on you? It sounds complicated, but let's break it down. First off, Nix isn't just one thing, which is where people can get confused. You can think of it as **three things in one** that are based on each other: it's a programming language, a package manager, and a full-blown operating system (NixOS). The magic is how they all work together. At its heart, Nix language, which is responsible for build Nix packages, is **declarative and purely functional**. This means you don't write a list of steps to set something up; instead, you write a single configuration file that describes the exact final state you want.
+It sounds complicated, but let's break it down. First off, Nix isn't just one thing, which is where people can get confused. You can think of it as **three things in one** that are based on each other: it's a programming language, a package manager, and a full-blown operating system (NixOS). The magic is how they all work together. At its heart, Nix language, which is responsible for building Nix packages, is **declarative and purely functional**. This means you don't write a list of steps to set something up; instead, you write a single configuration file that describes the exact final state you want.
 
-Nix is also very **deterministic** which means that a package definition in Nix language will always build the exact same software, bit for bit, every single time. It doesn't matter what other libraries or junk you have installed on your system, you don't have to install anything besides Nix itself. It builds everything in its own isolated sandbox, eliminating the "but it works on my machine!" problem forever. This deterministic power is what makes its package repository, **nixpkgs**, a reality. It's a gigantic collection where each package is just a functional declaration of what it is and what it depends on. When you ask for a package, Nix builds it and all of its dependencies from the ground up in that same perfectly reproducible way.
+Nix is also very **deterministic** which means that a package definition in Nix language will always build the exact same software, bit for bit, every single time. It doesn't matter what other libraries or junk you have installed on your system, you don't have to install anything besides Nix itself. It builds everything in its own isolated sandbox, eliminating the "but it works on my machine!" problem forever. This deterministic power is what makes its package repository, [**nixpkgs**](https://github.com/NixOS/nixpkgs), a reality. It's a gigantic collection where each package is just a functional declaration of what it is and what it depends on. When you ask for a package, Nix builds it and all of its dependencies from the ground up in that same perfectly reproducible way.
 
 And here’s a fact that might surprise you if you're new to this: **nixpkgs** is the single biggest package repository in the world in terms of the number of available packages. Yes, you heard that right. Homebrew, `apt`, or any other manager you can think of is a tiny little thing next to the sheer volume of software available in nixpkgs. It suprised me when I started with Nix and I'm sure it will suprise many more. Seems like it's one of the best-kept secrets in tech, but it's an absolute giant. And we're going to use this power to declare our entire server configuration, including Kubernetes itself, in reproducible Nix files.
+
+![Nixpkgs compared to other package managers](https://discourse.nixos.org/uploads/default/original/2X/1/1f6a38cffbc0072e4c3392447e5a83176b3bc964.png)
 
 Even though I tried my best to summarize it here, I know it might be very confusing now what exactly this Nix thing is, so I think it's the best to show you some examples:
 
@@ -376,7 +378,7 @@ Now that we understand a bit about Nix, let's get Kubernetes running on our "bar
 
 ## Install on hetzner
 
-To install NixOS on hetzner, first get any cloud server. I recommend the arm64 instances since they are typically cheaper and arm64 support on NixOS is great.
+Since it's not cheapest and the most popular option, I'll show you how to deploy on [Hetzner](). To install NixOS on Hetzner machine, first get any cloud server. I recommend the arm64 instances since they are typically cheaper and arm64 support on NixOS is great.
 Then:
 1. Go to the `ISO images` tab  and mount the NixOS arm64/minimal image.
 2. Reboot the machine
@@ -585,7 +587,7 @@ then, to use the CLI, override the default package, passing the arguments of eva
 ```
 
 
-The `./cluster.nix` is almost like a `NixOS` module. You define k8s resources there and it can import other modules as well. For example, here is a simple pod:
+The `./cluster.nix` is almost like a **NixOS** module. You define k8s resources there and it can import other modules as well. For example, here is a simple pod:
 
 ```nix
 # ./cluster.nix
@@ -599,7 +601,7 @@ The `./cluster.nix` is almost like a `NixOS` module. You define k8s resources th
 }
 ```
 
-Notice we didn't have to write all of the specifications from the normal YAML file the defines the Pod resouce in Kubernetes. We just wrote the image, and `kubenix` generates the rest.
+Notice we didn't have to write all of the specifications from the normal YAML file the defines the Pod resouce in Kubernetes. We just wrote the image, and **kubenix** generates the rest.
 
 Now, because we have a programming language, in our hands, we can make our lifes easier by making functions for creating specific deployments. As a  good example, you can see how this blog you are reading right now is defined and deployed. We make a [simple Nix function](https://github.com/dialohq/easybaremetal/blob/main/infra/helpers.nix) `mkBasicDeployment` that bundles 3 resources: Deployment, Service and Ingress. Then we can [use this function](https://github.com/dialohq/easybaremetal/blob/main/infra/apps.nix) to deploy public web apps by just passing a few arguments.
 
@@ -609,4 +611,4 @@ To apply changes in Nix to your actuall cluster, you just run:
 nix run .#kubenix
 ```
 
-`kubenix` will then evaluate Nix, generate YAML and sync it with the current state of your cluster. It will first show you a diff of changes and ask for a confirmation to apply new resources and prune removed ones, if any.
+**kubenix** will then evaluate Nix, generate YAML and sync it with the current state of your cluster. It will first show you a diff of changes and ask for a confirmation to apply new resources and prune removed ones, if any.
