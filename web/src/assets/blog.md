@@ -82,7 +82,7 @@ nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
 Flakes are technically an *experimental* feature, but the community adopted them as the default way to configure stuff with Nix because of a few advantages over the legacy *channels*. The big two advantages are:
 
-### 1. `flake.lock` File
+### 1. `flake.lock` file
 
 A typical lock file ensures that the version of a particular package is always the same until you change it explicitly. Nothing too exciting here, you never have to look at it. Just remember to commit it to Git to have the same versions whenever you pull the repo on a different machine.
 
