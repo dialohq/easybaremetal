@@ -1,6 +1,6 @@
 import Markdown from 'react-markdown'
 import blogContent from './assets/blog.md?raw'
-import poster from './assets/img.heic'
+import poster from './assets/img.png'
 import { FaServer } from "react-icons/fa6";
 import type { ReactNode, ElementType } from 'react';
 import rehypeRaw from 'rehype-raw';
