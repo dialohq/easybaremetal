@@ -23,7 +23,11 @@
         # kubenix definitions of Kubernetes cluster
         kubenix = kubenix.packages.${pkgs.system}.default.override {
           module = {kubenix, ...}: {
-            imports = [./infra/cert-manager.nix ./infra/apps.nix];
+            imports = [
+              kubenix.modules.k8s
+              ./infra/cert-manager.nix
+              ./infra/apps.nix
+            ];
           };
           specialArgs = {packages = self.packages.${system};};
         };
