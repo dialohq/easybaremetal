@@ -34,7 +34,7 @@
 
           src = ./web;
 
-          buildInputs = with pkgs; [bun];
+          buildInputs = [pkgs.bun];
 
           buildPhase = ''
             bun i --frozen-lockfile
