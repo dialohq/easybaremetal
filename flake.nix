@@ -20,6 +20,7 @@
       n2c = nix2container.packages.${system};
     in {
       packages = {
+        # kubenix definitions of Kubernetes cluster
         kubenix = kubenix.packages.${pkgs.system}.default.override {
           module = {kubenix, ...}: {
             imports = [./infra/cert-manager.nix ./infra/apps.nix];
@@ -27,6 +28,7 @@
           specialArgs = {packages = self.packages.${system};};
         };
 
+        # build/bundle the blog website as Nix package
         blog = pkgs.stdenv.mkDerivation {
           pname = "blog";
           version = "0.0.1";
@@ -45,6 +47,7 @@
           '';
         };
 
+        # make a Docker image out of the "blog" package above
         docker-blog = n2c.nix2container.buildImage {
           name = "ghcr.io/dialohq/easybaremetal";
           copyToRoot = [
@@ -61,13 +64,15 @@
         };
       };
 
+      # simple development environment shell
       devShells.default = pkgs.mkShell {
+        # get all of the packages from the "blog" package into the shell env
         inputsFrom = [self.packages.${system}.blog];
+        # add some more packages to the shell env
         buildInputs = with pkgs; [
           alejandra
           kubernetes-helm
         ];
-        # env.KUBECONFIG = "./k3s.yaml";
       };
     });
 }
