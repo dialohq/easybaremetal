@@ -17,6 +17,8 @@
   };
   environment.systemPackages = with pkgs; [
     helix
+    btop
+    cowsay
   ];
   networking.firewall.enable = false;
   services.openssh.enable = true;
