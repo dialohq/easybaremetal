@@ -18,6 +18,8 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
       n2c = nix2container.packages.${system};
+      blogImage = self.packages.${system}.docker-blog;
+      makers = (import ./infra/helpers.nix {inherit (pkgs) lib;}).makers;
     in {
       packages = {
         # kubenix definitions of Kubernetes cluster
@@ -26,7 +28,15 @@
             imports = [
               kubenix.modules.k8s
               ./infra/cert-manager.nix
-              ./infra/apps.nix
+
+              # deploying the blog website from the "docker-blog" package below, with a helper function
+              (makers.mkBasicDeployment {
+                name = "webapp";
+                image = "${blogImage.imageName}:${blogImage.imageTag}";
+                replicas = 2;
+                targetPort = 3000;
+                ingress-hosts = ["easybaremetal.com" "www.easybaremetal.com"];
+              })
             ];
           };
           specialArgs = {packages = self.packages.${system};};
